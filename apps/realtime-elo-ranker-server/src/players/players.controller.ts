@@ -2,7 +2,6 @@ import { Body, Controller, Get, Post, Sse, MessageEvent } from '@nestjs/common';
 import { PlayersService } from './players.service';
 import { RankingService } from '../ranking/ranking.service'; 
 import { CreatePlayerDto } from './dto/create-player.dto';
-import { PostMatchDto } from './dto/post-match.dto';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { map, Observable, fromEvent } from 'rxjs';
 
@@ -22,11 +21,6 @@ export class PlayersController {
   @Post('player')
   createPlayer(@Body() dto: CreatePlayerDto) {
     return this.playersService.createPlayer(dto);
-  }
-
-  @Post('match')
-  resolveMatch(@Body() dto: PostMatchDto) {
-    return this.playersService.resolveMatch(dto);
   }
 
   @Sse('ranking/events')

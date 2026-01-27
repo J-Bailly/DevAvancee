@@ -43,22 +43,6 @@ let PlayersService = class PlayersService {
         this.eventEmitter.emit('ranking.update', savedPlayer);
         return savedPlayer;
     }
-    async resolveMatch(dto) {
-        const winner = await this.playerRepository.findOneBy({ id: dto.winner });
-        const loser = await this.playerRepository.findOneBy({ id: dto.loser });
-        if (!winner || !loser) {
-            throw new common_1.NotFoundException('Joueur introuvable');
-        }
-        const result = this.rankingService.calculateMatchResult(winner, loser, dto.draw);
-        winner.rank = result.newRankWinner;
-        loser.rank = result.newRankLoser;
-        await this.playerRepository.save([winner, loser]);
-        this.eventEmitter.emit('player.updated', winner);
-        this.eventEmitter.emit('player.updated', loser);
-        this.eventEmitter.emit('ranking.update', winner);
-        this.eventEmitter.emit('ranking.update', loser);
-        return { winner, loser };
-    }
 };
 exports.PlayersService = PlayersService;
 exports.PlayersService = PlayersService = __decorate([

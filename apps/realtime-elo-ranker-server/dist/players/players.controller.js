@@ -17,7 +17,6 @@ const common_1 = require("@nestjs/common");
 const players_service_1 = require("./players.service");
 const ranking_service_1 = require("../ranking/ranking.service");
 const create_player_dto_1 = require("./dto/create-player.dto");
-const post_match_dto_1 = require("./dto/post-match.dto");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const rxjs_1 = require("rxjs");
 let PlayersController = class PlayersController {
@@ -34,9 +33,6 @@ let PlayersController = class PlayersController {
     }
     createPlayer(dto) {
         return this.playersService.createPlayer(dto);
-    }
-    resolveMatch(dto) {
-        return this.playersService.resolveMatch(dto);
     }
     sse() {
         return (0, rxjs_1.fromEvent)(this.eventEmitter, 'ranking.update').pipe((0, rxjs_1.map)((payload) => ({
@@ -58,13 +54,6 @@ __decorate([
     __metadata("design:paramtypes", [create_player_dto_1.CreatePlayerDto]),
     __metadata("design:returntype", void 0)
 ], PlayersController.prototype, "createPlayer", null);
-__decorate([
-    (0, common_1.Post)('match'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [post_match_dto_1.PostMatchDto]),
-    __metadata("design:returntype", void 0)
-], PlayersController.prototype, "resolveMatch", null);
 __decorate([
     (0, common_1.Sse)('ranking/events'),
     __metadata("design:type", Function),
