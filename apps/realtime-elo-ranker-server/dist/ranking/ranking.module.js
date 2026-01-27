@@ -6,24 +6,19 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PlayersModule = void 0;
+exports.RankingModule = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
-const player_entity_1 = require("./player.entity");
-const players_service_1 = require("./players.service");
-const players_controller_1 = require("./players.controller");
-const ranking_module_1 = require("../ranking/ranking.module");
-let PlayersModule = class PlayersModule {
+const player_entity_1 = require("../players/player.entity");
+const ranking_service_1 = require("./ranking.service");
+let RankingModule = class RankingModule {
 };
-exports.PlayersModule = PlayersModule;
-exports.PlayersModule = PlayersModule = __decorate([
+exports.RankingModule = RankingModule;
+exports.RankingModule = RankingModule = __decorate([
     (0, common_1.Module)({
-        imports: [
-            typeorm_1.TypeOrmModule.forFeature([player_entity_1.Player]),
-            ranking_module_1.RankingModule
-        ],
-        controllers: [players_controller_1.PlayersController],
-        providers: [players_service_1.PlayersService],
+        imports: [typeorm_1.TypeOrmModule.forFeature([player_entity_1.Player])],
+        providers: [ranking_service_1.RankingService],
+        exports: [ranking_service_1.RankingService],
     })
-], PlayersModule);
-//# sourceMappingURL=players.module.js.map
+], RankingModule);
+//# sourceMappingURL=ranking.module.js.map

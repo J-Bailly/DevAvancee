@@ -16,79 +16,48 @@ exports.PlayersService = void 0;
 const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
-const player_entity_1 = require("./player.entity");
 const event_emitter_1 = require("@nestjs/event-emitter");
+const player_entity_1 = require("./player.entity");
+const ranking_service_1 = require("../ranking/ranking.service");
 let PlayersService = class PlayersService {
     playerRepository;
     eventEmitter;
-    rankingCache = [];
-    constructor(playerRepository, eventEmitter) {
+    rankingService;
+    constructor(playerRepository, eventEmitter, rankingService) {
         this.playerRepository = playerRepository;
         this.eventEmitter = eventEmitter;
+        this.rankingService = rankingService;
     }
-    async onModuleInit() {
-        this.rankingCache = await this.playerRepository.find({
-            order: { rank: 'DESC' },
-        });
-    }
-    async getAllPlayers() {
-        return this.rankingCache;
-    }
-    async createPlayer(createPlayerDto) {
-        const existing = await this.playerRepository.findOneBy({ id: createPlayerDto.id });
+    async createPlayer(dto) {
+        const existing = await this.playerRepository.findOneBy({ id: dto.id });
         if (existing) {
-            throw new common_1.ConflictException(`Le joueur ${createPlayerDto.id} existe déjà.`);
+            throw new common_1.ConflictException(`Joueur ${dto.id} déjà existant.`);
         }
-        let initialRank = 1500;
-        if (this.rankingCache.length > 0) {
-            let totalScore = 0;
-            for (const p of this.rankingCache) {
-                totalScore += p.rank;
-            }
-            initialRank = Math.round(totalScore / this.rankingCache.length);
-        }
+        const initialRank = this.rankingService.calculateInitialRank();
         const player = this.playerRepository.create({
-            id: createPlayerDto.id,
+            id: dto.id,
             rank: initialRank,
         });
         const savedPlayer = await this.playerRepository.save(player);
-        this.rankingCache.push(savedPlayer);
-        this.sortCache();
+        this.eventEmitter.emit('player.updated', savedPlayer);
         this.eventEmitter.emit('ranking.update', savedPlayer);
         return savedPlayer;
     }
-    async resolveMatch(matchDto) {
-        const { winner: winnerId, loser: loserId, draw } = matchDto;
-        const winnerPlayer = await this.playerRepository.findOneBy({ id: winnerId });
-        const loserPlayer = await this.playerRepository.findOneBy({ id: loserId });
-        if (!winnerPlayer || !loserPlayer) {
-            throw new common_1.NotFoundException('Un des joueurs n\'existe pas.');
+    async resolveMatch(dto) {
+        const winner = await this.playerRepository.findOneBy({ id: dto.winner });
+        const loser = await this.playerRepository.findOneBy({ id: dto.loser });
+        if (!winner || !loser) {
+            throw new common_1.NotFoundException('Joueur introuvable');
         }
-        const K = 32;
-        const probWinner = 1 / (1 + Math.pow(10, (loserPlayer.rank - winnerPlayer.rank) / 400));
-        const probLoser = 1 / (1 + Math.pow(10, (winnerPlayer.rank - loserPlayer.rank) / 400));
-        const actualScoreWinner = draw ? 0.5 : 1;
-        const actualScoreLoser = draw ? 0.5 : 0;
-        const newRankWinner = Math.round(winnerPlayer.rank + K * (actualScoreWinner - probWinner));
-        const newRankLoser = Math.round(loserPlayer.rank + K * (actualScoreLoser - probLoser));
-        winnerPlayer.rank = newRankWinner;
-        loserPlayer.rank = newRankLoser;
-        await this.playerRepository.save([winnerPlayer, loserPlayer]);
-        this.updateCache(winnerPlayer);
-        this.updateCache(loserPlayer);
-        this.eventEmitter.emit('ranking.update', winnerPlayer);
-        this.eventEmitter.emit('ranking.update', loserPlayer);
-        return { winner: winnerPlayer, loser: loserPlayer };
-    }
-    updateCache(updatedPlayer) {
-        const index = this.rankingCache.findIndex(p => p.id === updatedPlayer.id);
-        if (index !== -1) {
-            this.rankingCache[index] = updatedPlayer;
-        }
-        this.sortCache();
-    }
-    sortCache() {
-        this.rankingCache.sort((a, b) => b.rank - a.rank);
+        const result = this.rankingService.calculateMatchResult(winner, loser, dto.draw);
+        winner.rank = result.newRankWinner;
+        loser.rank = result.newRankLoser;
+        await this.playerRepository.save([winner, loser]);
+        this.eventEmitter.emit('player.updated', winner);
+        this.eventEmitter.emit('player.updated', loser);
+        this.eventEmitter.emit('ranking.update', winner);
+        this.eventEmitter.emit('ranking.update', loser);
+        return { winner, loser };
     }
 };
 exports.PlayersService = PlayersService;
@@ -96,6 +65,7 @@ exports.PlayersService = PlayersService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(player_entity_1.Player)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        event_emitter_1.EventEmitter2])
+        event_emitter_1.EventEmitter2,
+        ranking_service_1.RankingService])
 ], PlayersService);
 //# sourceMappingURL=players.service.js.map

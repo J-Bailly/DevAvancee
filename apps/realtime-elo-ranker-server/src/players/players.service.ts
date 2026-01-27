@@ -1,119 +1,74 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Player } from './player.entity';
 import { CreatePlayerDto } from './dto/create-player.dto';
 import { PostMatchDto } from './dto/post-match.dto';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { RankingService } from '../ranking/ranking.service';
 
 @Injectable()
 export class PlayersService {
-  // Cache mémoire simple
-  private rankingCache: Player[] = [];
-
   constructor(
     @InjectRepository(Player)
     private playerRepository: Repository<Player>,
     private eventEmitter: EventEmitter2,
+    private rankingService: RankingService, // Injection du cerveau
   ) {}
 
-  /**
-   * Initialise le cache au démarrage
-   */
-  async onModuleInit() {
-    this.rankingCache = await this.playerRepository.find({
-      order: { rank: 'DESC' },
-    });
-  }
+  // Plus besoin de getRanking ici, on utilise celui du RankingService via le Controller
 
-  async getAllPlayers(): Promise<Player[]> {
-    return this.rankingCache;
-  }
-
-  async createPlayer(createPlayerDto: CreatePlayerDto): Promise<Player> {
-    const existing = await this.playerRepository.findOneBy({ id: createPlayerDto.id });
+  async createPlayer(dto: CreatePlayerDto): Promise<Player> {
+    const existing = await this.playerRepository.findOneBy({ id: dto.id });
     if (existing) {
-      throw new ConflictException(`Le joueur ${createPlayerDto.id} existe déjà.`);
+      throw new ConflictException(`Joueur ${dto.id} déjà existant.`);
     }
 
-    let initialRank = 1500;
+    // On demande au RankingService quel rang donner
+    const initialRank = this.rankingService.calculateInitialRank();
 
-    if (this.rankingCache.length > 0) {
-      let totalScore = 0;
-      for (const p of this.rankingCache) {
-        totalScore += p.rank;
-      }
-      initialRank = Math.round(totalScore / this.rankingCache.length);
-    }
     const player = this.playerRepository.create({
-      id: createPlayerDto.id,
+      id: dto.id,
       rank: initialRank,
     });
 
     const savedPlayer = await this.playerRepository.save(player);
 
-    this.rankingCache.push(savedPlayer);
-    this.sortCache();
-    this.eventEmitter.emit('ranking.update', savedPlayer);
+    // On notifie le système (RankingService va écouter ça)
+    this.eventEmitter.emit('player.updated', savedPlayer);
+    
+    // On notifie aussi le client via SSE (même évent)
+    this.eventEmitter.emit('ranking.update', savedPlayer); 
+
     return savedPlayer;
   }
 
-  async resolveMatch(matchDto: PostMatchDto): Promise<{ winner: Player; loser: Player }> {
-    const { winner: winnerId, loser: loserId, draw } = matchDto;
+  async resolveMatch(dto: PostMatchDto): Promise<{ winner: Player; loser: Player }> {
+    const winner = await this.playerRepository.findOneBy({ id: dto.winner });
+    const loser = await this.playerRepository.findOneBy({ id: dto.loser });
 
-    // 1. Récupération des joueurs
-    const winnerPlayer = await this.playerRepository.findOneBy({ id: winnerId });
-    const loserPlayer = await this.playerRepository.findOneBy({ id: loserId });
-
-    if (!winnerPlayer || !loserPlayer) {
-      throw new NotFoundException('Un des joueurs n\'existe pas.');
+    if (!winner || !loser) {
+      throw new NotFoundException('Joueur introuvable');
     }
 
-    // 2. Calcul Elo (Logique provient du README)
-    const K = 32;
+    // 1. On demande au RankingService de faire les maths
+    const result = this.rankingService.calculateMatchResult(winner, loser, dto.draw);
 
+    // 2. On applique les résultats
+    winner.rank = result.newRankWinner;
+    loser.rank = result.newRankLoser;
+
+    // 3. On sauvegarde en BDD (Transaction implicite via save array)
+    await this.playerRepository.save([winner, loser]);
+
+    // 4. On émet les événements pour mettre à jour le cache ET le client
+    this.eventEmitter.emit('player.updated', winner);
+    this.eventEmitter.emit('player.updated', loser);
     
-    const probWinner = 1 / (1 + Math.pow(10, (loserPlayer.rank - winnerPlayer.rank) / 400));
-    const probLoser = 1 / (1 + Math.pow(10, (winnerPlayer.rank - loserPlayer.rank) / 400));
+    // Pour le SSE du client
+    this.eventEmitter.emit('ranking.update', winner);
+    this.eventEmitter.emit('ranking.update', loser);
 
-    // Résultat réel
-    // 1 pour victoire, 0.5 pour égalité, 0 pour défaite
-    const actualScoreWinner = draw ? 0.5 : 1;
-    const actualScoreLoser = draw ? 0.5 : 0;
-
-    // Nouveau rang
-    // Rn = Ro + K * (W - We)
-    const newRankWinner = Math.round(winnerPlayer.rank + K * (actualScoreWinner - probWinner));
-    const newRankLoser = Math.round(loserPlayer.rank + K * (actualScoreLoser - probLoser));
-
-    // 3. Mise à jour des entités
-    winnerPlayer.rank = newRankWinner;
-    loserPlayer.rank = newRankLoser;
-
-    await this.playerRepository.save([winnerPlayer, loserPlayer]);
-
-    // 4. Mise à jour du cache local
-    this.updateCache(winnerPlayer);
-    this.updateCache(loserPlayer);
-
-    // 5. Émission des événements pour le temps réel (SSE)
-    this.eventEmitter.emit('ranking.update', winnerPlayer);
-    this.eventEmitter.emit('ranking.update', loserPlayer);
-
-    return { winner: winnerPlayer, loser: loserPlayer };
-  }
-
-  // Gestion du cache
-
-  private updateCache(updatedPlayer: Player) {
-    const index = this.rankingCache.findIndex(p => p.id === updatedPlayer.id);
-    if (index !== -1) {
-      this.rankingCache[index] = updatedPlayer;
-    }
-    this.sortCache();
-  }
-
-  private sortCache() {
-    this.rankingCache.sort((a, b) => b.rank - a.rank);
+    return { winner, loser };
   }
 }

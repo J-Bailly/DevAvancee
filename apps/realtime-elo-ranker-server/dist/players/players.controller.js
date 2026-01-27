@@ -15,36 +15,33 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.PlayersController = void 0;
 const common_1 = require("@nestjs/common");
 const players_service_1 = require("./players.service");
+const ranking_service_1 = require("../ranking/ranking.service");
 const create_player_dto_1 = require("./dto/create-player.dto");
 const post_match_dto_1 = require("./dto/post-match.dto");
 const event_emitter_1 = require("@nestjs/event-emitter");
 const rxjs_1 = require("rxjs");
-const operators_1 = require("rxjs/operators");
 let PlayersController = class PlayersController {
     playersService;
+    rankingService;
     eventEmitter;
-    constructor(playersService, eventEmitter) {
+    constructor(playersService, rankingService, eventEmitter) {
         this.playersService = playersService;
+        this.rankingService = rankingService;
         this.eventEmitter = eventEmitter;
     }
     getRanking() {
-        return this.playersService.getAllPlayers();
+        return this.rankingService.getRanking();
     }
-    createPlayer(createPlayerDto) {
-        return this.playersService.createPlayer(createPlayerDto);
+    createPlayer(dto) {
+        return this.playersService.createPlayer(dto);
     }
-    resolveMatch(postMatchDto) {
-        return this.playersService.resolveMatch(postMatchDto);
+    resolveMatch(dto) {
+        return this.playersService.resolveMatch(dto);
     }
     sse() {
-        return (0, rxjs_1.fromEvent)(this.eventEmitter, 'ranking.update').pipe((0, operators_1.map)((player) => {
-            return {
-                data: {
-                    type: 'RankingUpdate',
-                    player: player
-                },
-            };
-        }));
+        return (0, rxjs_1.fromEvent)(this.eventEmitter, 'ranking.update').pipe((0, rxjs_1.map)((payload) => ({
+            data: { type: 'RankingUpdate', player: payload },
+        })));
     }
 };
 exports.PlayersController = PlayersController;
@@ -77,6 +74,7 @@ __decorate([
 exports.PlayersController = PlayersController = __decorate([
     (0, common_1.Controller)('api'),
     __metadata("design:paramtypes", [players_service_1.PlayersService,
+        ranking_service_1.RankingService,
         event_emitter_1.EventEmitter2])
 ], PlayersController);
 //# sourceMappingURL=players.controller.js.map
