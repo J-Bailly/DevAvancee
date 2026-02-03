@@ -25,7 +25,9 @@ let SimulatorService = SimulatorService_1 = class SimulatorService {
     }
     async playAutomaticMatch() {
         const players = this.rankingService.getRanking();
+        this.logger.debug(`Vérification simulateur... ${players.length} joueurs trouvés.`);
         if (players.length < 2) {
+            this.logger.warn('⚠️ En attente de joueurs... Créez-en au moins 2 sur le client !');
             return;
         }
         const p1Index = Math.floor(Math.random() * players.length);
@@ -42,9 +44,10 @@ let SimulatorService = SimulatorService_1 = class SimulatorService {
                 loser: player2.id,
                 draw: isDraw,
             });
+            this.logger.log(`⚔️ Match Auto : ${player1.id} vs ${player2.id} (${isDraw ? 'Nul' : 'Victoire ' + player1.id})`);
         }
         catch (error) {
-            this.logger.error(`Erreur lors du match auto: ${error.message}`);
+            this.logger.error(`Erreur simulation: ${error.message}`);
         }
     }
 };

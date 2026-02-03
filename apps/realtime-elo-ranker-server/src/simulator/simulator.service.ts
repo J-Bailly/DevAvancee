@@ -16,10 +16,16 @@ export class SimulatorService {
   async playAutomaticMatch() {
     const players = this.rankingService.getRanking();
 
+    // --- DEBUG LOG ---
+    this.logger.debug(`Vérification simulateur... ${players.length} joueurs trouvés.`);
+    // -----------------
+
     if (players.length < 2) {
-      return; 
+      this.logger.warn('⚠️ En attente de joueurs... Créez-en au moins 2 sur le client !');
+      return;
     }
 
+    // ... (Le reste du code reste identique)
     const p1Index = Math.floor(Math.random() * players.length);
     let p2Index = Math.floor(Math.random() * players.length);
 
@@ -29,7 +35,6 @@ export class SimulatorService {
 
     const player1 = players[p1Index];
     const player2 = players[p2Index];
-
     const isDraw = Math.random() < 0.1;
 
     try {
@@ -38,8 +43,12 @@ export class SimulatorService {
         loser: player2.id,
         draw: isDraw,
       });
+      
+      this.logger.log(
+        `⚔️ Match Auto : ${player1.id} vs ${player2.id} (${isDraw ? 'Nul' : 'Victoire ' + player1.id})`
+      );
     } catch (error) {
-      this.logger.error(`Erreur lors du match auto: ${error.message}`);
+      this.logger.error(`Erreur simulation: ${error.message}`);
     }
   }
 }
