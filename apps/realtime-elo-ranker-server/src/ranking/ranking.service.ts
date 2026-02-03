@@ -6,7 +6,6 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class RankingService implements OnModuleInit {
-  // Le fameux Singleton Cache
   private rankingCache: Player[] = [];
 
   constructor(
@@ -14,7 +13,6 @@ export class RankingService implements OnModuleInit {
     private playerRepository: Repository<Player>,
   ) {}
 
-  // 1. Initialisation du cache au démarrage
   async onModuleInit() {
     this.rankingCache = await this.playerRepository.find({
       order: { rank: 'DESC' },
@@ -22,30 +20,23 @@ export class RankingService implements OnModuleInit {
     console.log(`Ranking initialized with ${this.rankingCache.length} players.`);
   }
 
-  // 2. Lecture du cache (Rapide !)
   getRanking(): Player[] {
     return this.rankingCache;
   }
 
-  // 3. Écouteur d'événement : Quand un joueur change, on met à jour le cache
   @OnEvent('player.updated')
   handlePlayerUpdate(player: Player) {
-    // On cherche si le joueur est déjà là
     const index = this.rankingCache.findIndex((p) => p.id === player.id);
     
     if (index !== -1) {
-      // Mise à jour
       this.rankingCache[index] = player;
     } else {
-      // Nouveau joueur
       this.rankingCache.push(player);
     }
     
-    // On re-trie toujours
     this.rankingCache.sort((a, b) => b.rank - a.rank);
   }
 
-  // 4. Logique Métier PURE : Calcul Elo
   calculateMatchResult(winner: Player, loser: Player, isDraw: boolean): { newRankWinner: number; newRankLoser: number } {
     const K = 32;
 
@@ -61,7 +52,6 @@ export class RankingService implements OnModuleInit {
     return { newRankWinner, newRankLoser };
   }
 
-  // Helper pour calculer la moyenne initiale (Logique métier)
   calculateInitialRank(): number {
     if (this.rankingCache.length === 0) return 1000;
     

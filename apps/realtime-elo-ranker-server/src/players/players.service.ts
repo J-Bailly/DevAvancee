@@ -12,10 +12,8 @@ export class PlayersService {
     @InjectRepository(Player)
     private playerRepository: Repository<Player>,
     private eventEmitter: EventEmitter2,
-    private rankingService: RankingService, // Injection du cerveau
+    private rankingService: RankingService,
   ) {}
-
-  // Plus besoin de getRanking ici, on utilise celui du RankingService via le Controller
 
   async createPlayer(dto: CreatePlayerDto): Promise<Player> {
     const existing = await this.playerRepository.findOneBy({ id: dto.id });
@@ -32,10 +30,8 @@ export class PlayersService {
 
     const savedPlayer = await this.playerRepository.save(player);
 
-    // On notifie le système (RankingService va écouter ça)
     this.eventEmitter.emit('player.updated', savedPlayer);
     
-    // On notifie aussi le client via SSE (même évent)
     this.eventEmitter.emit('ranking.update', savedPlayer); 
 
     return savedPlayer;

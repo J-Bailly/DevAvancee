@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PlayersModule } from './players/players.module';
 import { RankingModule } from './ranking/ranking.module'; 
+import { MatchesModule } from './matches/matches.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { RankingModule } from './ranking/ranking.module';
     }),
     PlayersModule,
     RankingModule, 
+    MatchesModule,
   ],
 })
 export class AppModule {}
