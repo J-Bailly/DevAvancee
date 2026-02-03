@@ -5,7 +5,7 @@ import { PlayersModule } from './players/players.module';
 import { RankingModule } from './ranking/ranking.module'; 
 import { MatchesModule } from './matches/matches.module';
 import { ScheduleModule } from '@nestjs/schedule';
-import { SimulatorService } from './simulator/simulator.service';
+import { SimulatorModule } from './simulator/simulator.module';
 
 @Module({
   imports: [
@@ -20,7 +20,7 @@ import { SimulatorService } from './simulator/simulator.service';
     RankingModule, 
     MatchesModule,
     ScheduleModule.forRoot(),
-    SimulatorService,
+    SimulatorModule,
   ],
 })
 export class AppModule {}

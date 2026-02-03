@@ -25,35 +25,27 @@ let SimulatorService = SimulatorService_1 = class SimulatorService {
     }
     async playAutomaticMatch() {
         const players = this.rankingService.getRanking();
-        this.logger.debug(`Vérification simulateur... ${players.length} joueurs trouvés.`);
-        if (players.length < 2) {
-            this.logger.warn('⚠️ En attente de joueurs... Créez-en au moins 2 sur le client !');
+        if (players.length < 2)
             return;
-        }
         const p1Index = Math.floor(Math.random() * players.length);
         let p2Index = Math.floor(Math.random() * players.length);
         while (p1Index === p2Index) {
             p2Index = Math.floor(Math.random() * players.length);
         }
-        const player1 = players[p1Index];
-        const player2 = players[p2Index];
-        const isDraw = Math.random() < 0.1;
         try {
             await this.matchesService.resolveMatch({
-                winner: player1.id,
-                loser: player2.id,
-                draw: isDraw,
+                winner: players[p1Index].id,
+                loser: players[p2Index].id,
+                draw: Math.random() < 0.1,
             });
-            this.logger.log(`⚔️ Match Auto : ${player1.id} vs ${player2.id} (${isDraw ? 'Nul' : 'Victoire ' + player1.id})`);
         }
-        catch (error) {
-            this.logger.error(`Erreur simulation: ${error.message}`);
+        catch (e) {
         }
     }
 };
 exports.SimulatorService = SimulatorService;
 __decorate([
-    (0, schedule_1.Interval)(2000),
+    (0, schedule_1.Interval)((2000)),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)

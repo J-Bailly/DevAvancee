@@ -6,25 +6,21 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
     return c > 3 && r && Object.defineProperty(target, key, r), r;
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.MatchesModule = void 0;
+exports.SimulatorModule = void 0;
 const common_1 = require("@nestjs/common");
-const typeorm_1 = require("@nestjs/typeorm");
-const player_entity_1 = require("../players/player.entity");
+const simulator_service_1 = require("./simulator.service");
+const matches_module_1 = require("../matches/matches.module");
 const ranking_module_1 = require("../ranking/ranking.module");
-const matches_controller_1 = require("./matches.controller");
-const matches_service_1 = require("./matches.service");
-let MatchesModule = class MatchesModule {
+let SimulatorModule = class SimulatorModule {
 };
-exports.MatchesModule = MatchesModule;
-exports.MatchesModule = MatchesModule = __decorate([
+exports.SimulatorModule = SimulatorModule;
+exports.SimulatorModule = SimulatorModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([player_entity_1.Player]),
+            matches_module_1.MatchesModule,
             ranking_module_1.RankingModule,
         ],
-        controllers: [matches_controller_1.MatchesController],
-        providers: [matches_service_1.MatchesService],
-        exports: [matches_service_1.MatchesService],
+        providers: [simulator_service_1.SimulatorService],
     })
-], MatchesModule);
-//# sourceMappingURL=matches.module.js.map
+], SimulatorModule);
+//# sourceMappingURL=simulator.module.js.map

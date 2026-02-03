@@ -14,7 +14,7 @@ const players_module_1 = require("./players/players.module");
 const ranking_module_1 = require("./ranking/ranking.module");
 const matches_module_1 = require("./matches/matches.module");
 const schedule_1 = require("@nestjs/schedule");
-const simulator_service_1 = require("./simulator/simulator.service");
+const simulator_module_1 = require("./simulator/simulator.module");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -32,7 +32,7 @@ exports.AppModule = AppModule = __decorate([
             ranking_module_1.RankingModule,
             matches_module_1.MatchesModule,
             schedule_1.ScheduleModule.forRoot(),
-            simulator_service_1.SimulatorService,
+            simulator_module_1.SimulatorModule,
         ],
     })
 ], AppModule);
